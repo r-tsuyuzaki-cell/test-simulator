@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Amazonテストマーケ シミュレーター</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f7f6f3;--surface:#fff;--surface2:#f0ede8;--border:#e2ddd6;--border2:#ccc8bf;
+  --text:#1a1a18;--text2:#6b6860;--text3:#9e9b94;
+  --blue:#1a6fc4;--blue-bg:#e8f0fb;--blue-bd:#b5d4f4;
+  --green:#1a7a45;--green-bg:#e6f4ec;
+  --amber:#a05a00;--amber-bg:#fdf0dd;
+  --red:#a82020;--red-bg:#faeaea;
+  --purple:#4a3ab0;--purple-bg:#eeedfe;
+  --radius:10px;--rsm:6px;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#181816;--surface:#222220;--surface2:#2a2a28;--border:#383835;--border2:#4a4a47;
+  --text:#eeecea;--text2:#a09e98;--text3:#6e6c67;
+  --blue:#5b9fdf;--blue-bg:#162540;--blue-bd:#2a4a7a;
+  --green:#4aaa6e;--green-bg:#122b1e;
+  --amber:#d4902a;--amber-bg:#2a1e08;
+  --red:#d96060;--red-bg:#2b1010;
+  --purple:#9080e0;--purple-bg:#1e1a40;
+}}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic UI",sans-serif;font-size:15px;line-height:1.6}
+.app{max-width:820px;margin:0 auto;padding:24px 16px 80px}
+h1{font-size:20px;font-weight:600;margin-bottom:2px}
+.subtitle{font-size:13px;color:var(--text2);margin-bottom:20px}
+
+.prod-bar{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.prod-tab{border:1px solid var(--border2);border-radius:var(--rsm);padding:6px 14px;font-size:13px;cursor:pointer;background:var(--surface);color:var(--text2);white-space:nowrap;transition:all .15s}
+.prod-tab.active{background:var(--blue-bg);color:var(--blue);border-color:var(--blue-bd);font-weight:500}
+.prod-tab.add-btn{border-style:dashed;color:var(--text3)}
+.prod-tab.add-btn:hover{color:var(--blue);border-color:var(--blue)}
+
+.prod-form{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:16px}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 20px}
+@media(max-width:480px){.form-grid{grid-template-columns:1fr}}
+.field label{display:block;font-size:11px;color:var(--text3);font-weight:500;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+.field input,.field select,.field textarea{width:100%;border:1px solid var(--border2);border-radius:var(--rsm);padding:7px 10px;font-size:14px;background:var(--surface);color:var(--text);outline:none;font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--blue)}
+.field textarea{resize:vertical;min-height:72px;line-height:1.5}
+.field-full{grid-column:1/-1}
+.form-actions{display:flex;gap:8px;margin-top:12px;align-items:center;flex-wrap:wrap}
+.btn{border:1px solid var(--border2);border-radius:var(--rsm);padding:7px 16px;font-size:13px;cursor:pointer;background:var(--surface);color:var(--text2);transition:all .15s;white-space:nowrap}
+.btn:hover{background:var(--surface2)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:var(--blue-bg);color:var(--blue);border-color:var(--blue-bd);font-weight:500}
+.btn-primary:hover{opacity:.85}
+.btn-ai{background:var(--purple-bg);color:var(--purple);border-color:var(--purple);font-weight:500}
+.btn-ai:hover{opacity:.85}
+.btn-danger{color:var(--red);border-color:var(--red-bg)}
+.btn-danger:hover{background:var(--red-bg)}
+
+.tab-row{display:flex;border-bottom:1px solid var(--border);margin-bottom:20px;overflow-x:auto}
+.tab{padding:9px 14px;font-size:13px;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;flex-shrink:0}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:500}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+.section{margin-bottom:24px}
+.section-label{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px}
+.card+.card{margin-top:10px}
+
+.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.metrics-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.metrics-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media(max-width:520px){.metrics,.metrics-4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.metric{background:var(--surface2);border-radius:var(--rsm);padding:12px}
+.metric-label{font-size:11px;color:var(--text2);margin-bottom:3px;line-height:1.4}
+.metric-value{font-size:20px;font-weight:600;line-height:1.2}
+.metric-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.good{color:var(--green)}.bad{color:var(--red)}
+
+.scenario-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
+@media(max-width:480px){.scenario-grid{grid-template-columns:1fr}}
+.sc-card{border:1px solid var(--border);border-radius:var(--radius);padding:14px;background:var(--surface)}
+.sc-card.best{border-color:var(--blue-bd);background:var(--blue-bg)}
+.sc-label{font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;text-transform:uppercase}
+.sc-value{font-size:18px;font-weight:600;margin-bottom:2px}
+.sc-sub{font-size:11px;color:var(--text2)}
+
+.row{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border);gap:12px}
+.row:last-child{border-bottom:none}
+.row-label{font-size:13px;color:var(--text2);flex:1}
+.row-value{font-size:13px;font-weight:500;text-align:right;flex-shrink:0}
+.badge{display:inline-block;font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;margin-bottom:8px}
+.badge-green{background:var(--green-bg);color:var(--green)}
+.badge-blue{background:var(--blue-bg);color:var(--blue)}
+.badge-amber{background:var(--amber-bg);color:var(--amber)}
+.badge-red{background:var(--red-bg);color:var(--red)}
+.badge-purple{background:var(--purple-bg);color:var(--purple)}
+.verdict-title{font-size:15px;font-weight:600;margin-bottom:4px}
+.verdict-body{font-size:13px;color:var(--text2);line-height:1.7}
+.divider{border:none;border-top:1px solid var(--border);margin:12px 0}
+.note{font-size:11px;color:var(--text3);line-height:1.6;margin-top:8px}
+
+.ai-loading{display:flex;align-items:center;gap:10px;padding:20px;color:var(--text2);font-size:13px}
+.spinner{width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.research-result{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;white-space:pre-wrap;font-size:13px;line-height:1.8;color:var(--text)}
+.research-result h3{font-size:14px;font-weight:600;margin:14px 0 6px;color:var(--text)}
+.research-result h3:first-child{margin-top:0}
+.research-result ul{padding-left:16px;margin:4px 0}
+.research-result li{margin-bottom:4px}
+.research-result strong{font-weight:600}
+
+.comp-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+.comp-table th{text-align:left;font-size:11px;color:var(--text3);font-weight:500;padding:6px 8px 6px 0;border-bottom:1px solid var(--border)}
+.comp-table td{padding:9px 8px 9px 0;border-bottom:1px solid var(--border);color:var(--text);vertical-align:top}
+.comp-table tr:last-child td{border-bottom:none}
+.comp-table td:not(:first-child){color:var(--text2)}
+
+.kpi-table{width:100%;border-collapse:collapse;font-size:13px}
+.kpi-table th{text-align:left;color:var(--text3);font-size:11px;font-weight:500;padding:6px 0;border-bottom:1px solid var(--border)}
+.kpi-table td{padding:9px 0;border-bottom:1px solid var(--border)}
+.kpi-table td:not(:first-child){text-align:right;color:var(--text2)}
+.kpi-table tr:last-child td{border-bottom:none}
+.checklist{list-style:none}
+.checklist li{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.checklist li:last-child{border-bottom:none}
+.ci{flex:0 0 18px;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700}
+.ci-ok{background:var(--green-bg);color:var(--green)}
+.ci-warn{background:var(--amber-bg);color:var(--amber)}
+.ci-ng{background:var(--red-bg);color:var(--red)}
+.cl-label{font-weight:500;color:var(--text)}
+.cl-sub{font-size:12px;color:var(--text2);margin-top:1px}
+
+.import-btn{font-size:12px;padding:4px 10px;margin-top:8px}
+.editable-num{border:1px solid var(--border2);border-radius:var(--rsm);padding:4px 8px;font-size:13px;background:var(--surface);color:var(--text);width:110px;outline:none}
+.editable-num:focus{border-color:var(--blue)}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>Amazonテストマーケ シミュレーター</h1>
+  <p class="subtitle">市場調査AI統合版 — 商品コンセプトを入力するだけで市場規模・競合・利益を試算</p>
+
+  <div id="apikey-bar" style="margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-size:12px;color:var(--text3);flex-shrink:0">Groq APIキー：</span>
+      <input type="password" id="apikey-input" placeholder="gsk_..." oninput="saveApiKey()"
+        style="flex:1;min-width:200px;max-width:380px;border:1px solid var(--border2);border-radius:var(--rsm);padding:6px 10px;font-size:13px;background:var(--surface);color:var(--text);outline:none;font-family:monospace">
+      <span id="apikey-status" style="font-size:12px"></span>
+    </div>
+    <p style="font-size:11px;color:var(--text3);margin-top:4px">
+      APIキーは <a href="https://console.groq.com/keys" target="_blank" style="color:var(--blue)">console.groq.com/keys</a> で取得（無料）。このブラウザにのみ保存され、外部には送信されません。
+    </p>
+  </div>
+
+  <div class="prod-bar" id="prod-bar"></div>
+
+  <div class="prod-form" id="prod-form">
+    <div class="form-grid">
+      <div class="field field-full">
+        <label>商品名</label>
+        <input type="text" id="f-name" placeholder="例：マグネシウムクリーム">
+      </div>
+      <div class="field">
+        <label>販売単価（円）</label>
+        <input type="number" id="f-price" placeholder="例：3480">
+      </div>
+      <div class="field">
+        <label>仕入れ原価（円/個）</label>
+        <input type="number" id="f-cost" placeholder="例：800">
+      </div>
+      <div class="field">
+        <label>初期ロット（個）</label>
+        <input type="number" id="f-stock" placeholder="例：500">
+      </div>
+      <div class="field">
+        <label>想定月販売数（個）</label>
+        <input type="number" id="f-monthly" placeholder="例：50">
+      </div>
+      <div class="field">
+        <label>広告費/月（円）</label>
+        <input type="number" id="f-ads" placeholder="例：30000">
+      </div>
+      <div class="field">
+        <label>テスト期間</label>
+        <select id="f-period">
+          <option value="1">1ヶ月</option>
+          <option value="2">2ヶ月</option>
+          <option value="3" selected>3ヶ月</option>
+          <option value="4">4ヶ月</option>
+          <option value="5">5ヶ月</option>
+          <option value="6">6ヶ月</option>
+          <option value="7">7ヶ月</option>
+          <option value="8">8ヶ月</option>
+          <option value="9">9ヶ月</option>
+          <option value="10">10ヶ月</option>
+          <option value="11">11ヶ月</option>
+          <option value="12">12ヶ月</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="saveProduct()">保存して計算</button>
+      <button class="btn" onclick="exportCSV()">CSVで保存</button>
+      <button class="btn btn-danger" id="del-btn" onclick="deleteProduct()" style="display:none">この商品を削除</button>
+      <span id="form-msg" style="font-size:12px;color:var(--text3)"></span>
+    </div>
+  </div>
+
+  <div class="tab-row">
+    <div class="tab active" onclick="switchTab('research',this)">市場調査</div>
+    <div class="tab" onclick="switchTab('sim',this)">シミュレーション</div>
+    <div class="tab" onclick="switchTab('scenario',this)">シナリオ比較</div>
+    <div class="tab" onclick="switchTab('kpi',this)">KPI・チェックリスト</div>
+  </div>
+
+  <!-- ===== 市場調査タブ ===== -->
+  <div id="tab-research" class="tab-content active">
+    <div class="section">
+      <div class="section-label">商品コンセプト入力</div>
+      <div class="card">
+        <div class="form-grid">
+          <div class="field field-full">
+            <label>ターゲット（誰の悩みを解決する？）</label>
+            <textarea id="r-target" placeholder="例：デスクワークで肩こりに悩む30〜40代女性"></textarea>
+          </div>
+          <div class="field field-full">
+            <label>訴求軸（どんな効果・ベネフィット？）</label>
+            <textarea id="r-benefit" placeholder="例：マグネシウムの経皮吸収で肩こり・疲労を回復。毎晩のスキンケア習慣として使える"></textarea>
+          </div>
+          <div class="field">
+            <label>価格帯イメージ</label>
+            <input type="text" id="r-price-range" placeholder="例：2,500〜3,500円">
+          </div>
+          <div class="field">
+            <label>販売チャネル</label>
+            <input type="text" id="r-channel" placeholder="例：Amazon → 自社EC（Shopify）">
+          </div>
+          <div class="field field-full">
+            <label>競合だと思っているブランド・商品名（任意）</label>
+            <input type="text" id="r-rivals" placeholder="例：マグバーム、Nature In、ツラナイン">
+          </div>
+        </div>
+        <div class="form-actions" style="margin-top:12px">
+          <button class="btn btn-ai" id="research-btn" onclick="runResearch()">AIで市場調査を実行</button>
+          <span style="font-size:12px;color:var(--text3)">Claude APIで競合・市場規模・ミニマムラインを自動調査します</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="research-output"></div>
+  </div>
+
+  <!-- ===== シミュレーションタブ ===== -->
+  <div id="tab-sim" class="tab-content">
+    <div id="sim-content"><p style="color:var(--text3);font-size:13px">商品を登録して「保存して計算」を押してください。</p></div>
+  </div>
+
+  <!-- ===== シナリオ比較タブ ===== -->
+  <div id="tab-scenario" class="tab-content">
+    <div id="scenario-content"><p style="color:var(--text3);font-size:13px">商品を登録してください。</p></div>
+  </div>
+
+  <!-- ===== KPIタブ ===== -->
+  <div id="tab-kpi" class="tab-content">
+    <div class="section">
+      <div class="section-label">テスト判断の指標</div>
+      <div class="card">
+        <table class="kpi-table">
+          <tr><th>指標</th><th>ミニマム合格</th><th>スケールアップ</th></tr>
+          <tr><td>月間販売数</td><td>30個以上</td><td>80個以上</td></tr>
+          <tr><td>在庫消化率（3ヶ月）</td><td>60%以上</td><td>90%以上</td></tr>
+          <tr><td>Amazonレビュー数</td><td>3ヶ月で10件</td><td>3ヶ月で30件</td></tr>
+          <tr><td>平均レビュー評価</td><td>★3.8以上</td><td>★4.2以上</td></tr>
+          <tr><td>リピート注文率</td><td>15%以上</td><td>30%以上</td></tr>
+          <tr><td>広告ROAS</td><td>200%以上</td><td>400%以上</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-label">出品前チェックリスト</div>
+      <div class="card">
+        <ul class="checklist">
+          <li><div class="ci ci-ok">✓</div><div><div class="cl-label">競合調査完了</div><div class="cl-sub">主要5社のポジション・価格・レビュー傾向を把握</div></div></li>
+          <li><div class="ci ci-warn">!</div><div><div class="cl-label">販売価格の決定</div><div class="cl-sub">¥2,500〜3,500帯が空白。原価から逆算して設定する</div></div></li>
+          <li><div class="ci ci-warn">!</div><div><div class="cl-label">商品訴求軸の確定</div><div class="cl-sub">「肩こり疲労回復 × 日常ケア」で競合と差別化する</div></div></li>
+          <li><div class="ci ci-ng">×</div><div><div class="cl-label">Amazon出品準備</div><div class="cl-sub">セラーアカウント・FBA設定・商品ページ作成</div></div></li>
+          <li><div class="ci ci-ng">×</div><div><div class="cl-label">初期レビュー獲得戦略</div><div class="cl-sub">Amazon Vine または同梱レビュー依頼カード設計</div></div></li>
+          <li><div class="ci ci-ng">×</div><div><div class="cl-label">スポンサープロダクト広告の準備</div><div class="cl-sub">初月予算3〜5万円。「マグネシウム クリーム」「肩こり クリーム」などのキーワード設計</div></div></li>
+          <li><div class="ci ci-ng">×</div><div><div class="cl-label">同梱カード設計（EC・定期誘導）</div><div class="cl-sub">QRコードで自社ECの定期便ページへ誘導</div></div></li>
+        </ul>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-label">3ヶ月テスト後の分岐判断</div>
+      <div class="card">
+        <div class="row"><span class="row-label">月80個超・消化率90%超</span><span class="row-value" style="color:var(--green)">→ 発注2倍・楽天展開へ</span></div>
+        <div class="row"><span class="row-label">月30〜80個・消化率60〜90%</span><span class="row-value" style="color:var(--blue)">→ 広告最適化・LP改善継続</span></div>
+        <div class="row"><span class="row-label">月30個未満・消化率60%未満</span><span class="row-value" style="color:var(--amber)">→ 訴求軸ピボットまたは価格改定</span></div>
+        <div class="row"><span class="row-label">レビュー★3.5未満が続く場合</span><span class="row-value" style="color:var(--red)">→ 製品品質・使用感の再検討</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var products = JSON.parse(localStorage.getItem('amz_products') || '[]');
+var currentIdx = 0;
+var researchData = JSON.parse(localStorage.getItem('amz_research') || '{}');
+
+function saveApiKey(){
+  var val = document.getElementById('apikey-input').value.trim();
+  localStorage.setItem('amz_apikey', val);
+  var st = document.getElementById('apikey-status');
+  if(val.startsWith('gsk_')){
+    st.textContent = '✓ 設定済み'; st.style.color = 'var(--green)';
+  } else if(val.length > 0){
+    st.textContent = '形式を確認してください（gsk_ で始まる）'; st.style.color = 'var(--amber)';
+  } else {
+    st.textContent = '未設定'; st.style.color = 'var(--text3)';
+  }
+}
+
+function loadApiKey(){
+  var val = localStorage.getItem('amz_apikey') || '';
+  document.getElementById('apikey-input').value = val;
+  saveApiKey();
+}
+
+if (!products.length) {
+  products.push({name:'マグネシウムクリーム',price:3480,cost:800,stock:500,monthly:50,ads:30000,period:3,
+    research:{target:'',benefit:'',priceRange:'',channel:'',rivals:''}});
+  saveProds();
+}
+
+function saveProds(){ localStorage.setItem('amz_products', JSON.stringify(products)); }
+function fmt(n){ return Math.round(n).toLocaleString(); }
+
+/* ---- product bar ---- */
+function renderProdBar(){
+  var bar = document.getElementById('prod-bar');
+  bar.innerHTML = '';
+  products.forEach(function(p,i){
+    var btn = document.createElement('button');
+    btn.className = 'prod-tab'+(i===currentIdx?' active':'');
+    btn.textContent = p.name||('商品'+(i+1));
+    btn.onclick=(function(idx){return function(){currentIdx=idx;renderAll();
+loadApiKey();}})(i);
+    bar.appendChild(btn);
+  });
+  var add = document.createElement('button');
+  add.className='prod-tab add-btn'; add.textContent='+ 新しい商品';
+  add.onclick=addProduct; bar.appendChild(add);
+}
+
+function addProduct(){
+  products.push({name:'',price:0,cost:0,stock:500,monthly:50,ads:30000,period:3,
+    research:{target:'',benefit:'',priceRange:'',channel:'',rivals:''}});
+  currentIdx=products.length-1; saveProds(); renderAll();
+  document.getElementById('f-name').focus();
+}
+
+function deleteProduct(){
+  if(products.length<=1){alert('最低1商品は必要です');return;}
+  if(!confirm('"'+products[currentIdx].name+'" を削除しますか？'))return;
+  products.splice(currentIdx,1);
+  currentIdx=Math.min(currentIdx,products.length-1);
+  saveProds(); renderAll();
+}
+
+function saveProduct(){
+  var p=products[currentIdx];
+  p.name    = document.getElementById('f-name').value||('商品'+(currentIdx+1));
+  p.price   = parseFloat(document.getElementById('f-price').value)||0;
+  p.cost    = parseFloat(document.getElementById('f-cost').value)||0;
+  p.stock   = parseInt(document.getElementById('f-stock').value)||500;
+  p.monthly = parseInt(document.getElementById('f-monthly').value)||50;
+  p.ads     = parseFloat(document.getElementById('f-ads').value)||0;
+  p.period  = parseInt(document.getElementById('f-period').value)||3;
+  saveProds();
+  var msg=document.getElementById('form-msg');
+  msg.textContent='保存しました';
+  setTimeout(function(){msg.textContent='';},2000);
+  renderAll();
+}
+
+function fillForm(){
+  var p=products[currentIdx];
+  document.getElementById('f-name').value    = p.name||'';
+  document.getElementById('f-price').value  = p.price||'';
+  document.getElementById('f-cost').value   = p.cost||'';
+  document.getElementById('f-stock').value  = p.stock||'';
+  document.getElementById('f-monthly').value= p.monthly||'';
+  document.getElementById('f-ads').value    = p.ads||0;
+  document.getElementById('f-period').value = p.period||3;
+  document.getElementById('del-btn').style.display=products.length>1?'inline-block':'none';
+  var r = p.research||{};
+  document.getElementById('r-target').value      = r.target||'';
+  document.getElementById('r-benefit').value     = r.benefit||'';
+  document.getElementById('r-price-range').value = r.priceRange||'';
+  document.getElementById('r-channel').value     = r.channel||'';
+  document.getElementById('r-rivals').value      = r.rivals||'';
+  var key = 'research_'+currentIdx;
+  var saved = researchData[key];
+  if(saved){ var hist=Array.isArray(saved)?saved:[]; if(hist.length){ renderResearchResult(hist); } else { document.getElementById('research-output').innerHTML=''; } } else { document.getElementById('research-output').innerHTML=''; }
+}
+
+/* ---- calc ---- */
+function calc(p){
+  var sales=Math.min(p.stock,p.monthly*p.period);
+  var remain=Math.max(0,p.stock-sales);
+  var rate=Math.round(sales/p.stock*100);
+  var sellout=Math.ceil(p.stock/p.monthly);
+  var rev=0,cogs=0,amzFee=0,fba=0,adsCost=0,gp=0,margin=0,roi=0;
+  var has=p.price>0&&p.cost>0;
+  if(has){
+    rev=sales*p.price; cogs=sales*p.cost;
+    amzFee=Math.round(rev*0.15); fba=sales*360;
+    adsCost=(p.ads||0)*p.period;
+    gp=rev-cogs-amzFee-fba-adsCost;
+    margin=rev>0?Math.round(gp/rev*100):0;
+    roi=(p.stock*p.cost)>0?Math.round(gp/(p.stock*p.cost)*100):0;
+  }
+  return {sales,remain,rate,sellout,rev,cogs,amzFee,fba,adsCost,gp,margin,roi,has};
+}
+
+function metric(label,val,sub,cls){
+  return '<div class="metric"><div class="metric-label">'+label+'</div>'
+    +'<div class="metric-value'+(cls?' '+cls:'')+'">'+ val+'</div>'
+    +'<div class="metric-sub">'+sub+'</div></div>';
+}
+function rowHtml(l,v){return '<div class="row"><span class="row-label">'+l+'</span><span class="row-value">'+v+'</span></div>';}
+
+/* ---- sim tab ---- */
+function renderSim(){
+  var p=products[currentIdx]; var c=calc(p);
+  var html='';
+
+  // 市場調査サマリー（最新の調査結果があれば表示）
+  var key='research_'+currentIdx;
+  var hist=researchData[key];
+  if(hist && hist.length){
+    var latest=hist[hist.length-1].data;
+    html+='<div class="section"><div class="section-label">市場調査サマリー <span style="font-weight:400;color:var(--text3);font-size:10px">最終調査：'+hist[hist.length-1].date+'</span></div>';
+    html+='<div class="card" style="border-left:3px solid var(--purple)">';
+    html+='<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 20px">';
+    html+='<div><div style="font-size:11px;color:var(--text3);margin-bottom:2px">実質取れる市場</div><div style="font-size:16px;font-weight:600;color:var(--purple)">'+latest.marketSize.addressable+'</div></div>';
+    html+='<div><div style="font-size:11px;color:var(--text3);margin-bottom:2px">ミニマム月販売数</div><div style="font-size:16px;font-weight:600;color:var(--green)">'+latest.minimumLine.monthlySales+'個</div></div>';
+    html+='<div style="grid-column:1/-1"><div style="font-size:11px;color:var(--text3);margin-bottom:2px">差別化チャンス</div><div style="font-size:13px;color:var(--text2);line-height:1.6">'+latest.differentiationOpportunity+'</div></div>';
+    html+='</div>';
+    html+='<div style="margin-top:10px;text-align:right"><button class="btn" style="font-size:11px;padding:3px 10px" onclick="switchTab(\'research\',document.querySelectorAll(\'.tab\')[0])">詳細を見る →</button></div>';
+    html+='</div></div>';
+  }
+
+  html+='<div class="section"><div class="section-label">件数ベース</div><div class="metrics">';
+  html+=metric('期間内販売見込み（'+p.period+'ヶ月）',fmt(c.sales)+'個','月'+p.monthly+'個 × '+p.period+'ヶ月','');
+  html+=metric('完売までの目安',c.sellout+'ヶ月','在庫'+p.stock+'個 ÷ 月'+p.monthly+'個','');
+  html+=metric('消化率',c.rate+'%','残在庫 '+fmt(c.remain)+'個',c.rate>=90?'good':c.rate<50?'bad':'');
+  html+='</div></div>';
+  if(c.has){
+    html+='<div class="section"><div class="section-label">売上・利益（'+p.period+'ヶ月）</div><div class="metrics-4">';
+    html+=metric('売上','¥'+fmt(c.rev),fmt(c.sales)+'個 × ¥'+fmt(p.price),'');
+    html+=metric('概算利益',(c.gp>=0?'¥':'▲¥')+fmt(Math.abs(c.gp)),'Amazon費・FBA・広告込',c.gp>=0?'good':'bad');
+    html+=metric('利益率',c.margin+'%','Amazon費用後',c.margin>=30?'good':c.margin<10?'bad':'');
+    html+=metric('仕入ROI',c.roi+'%','仕入総額¥'+fmt(p.stock*p.cost),c.roi>=50?'good':c.roi<0?'bad':'');
+    html+='</div><div class="card" style="margin-top:10px;font-size:12px;color:var(--text2);line-height:1.9">';
+    html+='<strong style="color:var(--text);font-weight:500">費用内訳（'+p.period+'ヶ月合計）</strong><br>';
+    html+='仕入原価 ¥'+fmt(c.cogs)+'　Amazon手数料(15%) ¥'+fmt(c.amzFee)+'　FBA配送 ¥'+fmt(c.fba);
+    if(c.adsCost>0) html+='　広告費 ¥'+fmt(c.adsCost);
+    html+='<br><span style="color:var(--text3)">※FBAは¥360/個で試算。実際は商品サイズ・重量により変動。</span></div></div>';
+  } else {
+    html+='<p class="note" style="margin-bottom:20px">※ 単価・原価を入力すると売上・利益が計算されます。</p>';
+  }
+  var bc,bt,vt,vb;
+  if(c.rate>=90&&p.monthly>=80){bc='badge-green';bt='◎ スケールアップ検討フェーズ';vt='消化率・販売速度ともに高水準';vb='2回目の発注数を増やして定期化へ移行する時期。楽天・自社ECへの展開も同時進行で設計する。';}
+  else if(c.rate>=70&&p.monthly>=40){bc='badge-blue';bt='○ 検証成功・継続フェーズ';vt='ミニマムのリターンは取れている水準';vb='レビュー獲得・広告キーワード最適化を続けてコンバージョン率を上げることが次の課題。';}
+  else if(c.rate>=50){bc='badge-amber';bt='△ 改善が必要';vt='販売は出ているが速度が足りない';vb='商品画像・タイトル・価格帯の見直し、または広告投資の増額を検討。';}
+  else{bc='badge-red';bt='× 要再検討';vt='消化率・販売速度が低く在庫リスクが高い';vb='訴求軸のピボットまたは価格改定を検討。広告を増やす前に商品ページの改善が先。';}
+  html+='<div class="section"><div class="section-label">判定</div><div class="card">';
+  html+='<span class="badge '+bc+'">'+bt+'</span>';
+  html+='<div class="verdict-title">'+vt+'</div><div class="verdict-body">'+vb+'</div><hr class="divider">';
+  html+=rowHtml('テスト期間',p.period+'ヶ月');
+  html+=rowHtml('完売目安',c.sellout+'ヶ月');
+  html+=rowHtml('ミニマム合格ライン','月30個以上 / 消化率60%超');
+  html+=rowHtml('スケールアップライン','月80個以上 / 消化率90%超');
+  html+='</div></div>';
+  document.getElementById('sim-content').innerHTML=html;
+}
+
+/* ---- scenario tab ---- */
+function renderScenario(){
+  var p=products[currentIdx];
+  var sc=[
+    {label:'悲観シナリオ',monthly:Math.max(5,Math.round(p.monthly*0.5))},
+    {label:'中立シナリオ',monthly:p.monthly},
+    {label:'楽観シナリオ',monthly:Math.round(p.monthly*2)},
+  ];
+  var html='<div class="section"><div class="section-label">'+p.name+' — 3パターン比較（'+p.period+'ヶ月）</div>';
+  html+='<div class="scenario-grid">';
+  sc.forEach(function(s,i){
+    var pp=Object.assign({},p,{monthly:s.monthly}); var c=calc(pp);
+    html+='<div class="sc-card'+(i===1?' best':'')+'"><div class="sc-label">'+s.label+'</div>';
+    html+='<div style="font-size:11px;color:var(--text2);margin-bottom:8px">月'+s.monthly+'個と想定</div>';
+    html+='<div class="sc-value">'+fmt(c.sales)+'個</div><div class="sc-sub">'+p.period+'ヶ月販売見込み</div>';
+    if(c.has){
+      html+='<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">';
+      html+='<div style="font-size:12px;color:var(--text2)">売上</div>';
+      html+='<div style="font-size:16px;font-weight:600">¥'+fmt(c.rev)+'</div>';
+      html+='<div style="font-size:12px;color:var(--text2);margin-top:4px">利益</div>';
+      html+='<div style="font-size:16px;font-weight:600;color:'+(c.gp>=0?'var(--green)':'var(--red)')+'">'+( c.gp>=0?'¥':'▲¥')+fmt(Math.abs(c.gp))+'</div></div>';
+    }
+    html+='<div style="margin-top:8px;font-size:11px;color:var(--text3)">消化率 '+c.rate+'% / 完売 '+c.sellout+'ヶ月</div></div>';
+  });
+  html+='</div><p class="note">中立シナリオ（青枠）が現在の設定値。悲観・楽観はそれぞれ月販売数を0.5倍・2倍で試算。</p></div>';
+  if(products.length>1){
+    html+='<div class="section"><div class="section-label">全商品比較（中立シナリオ）</div><div class="card">';
+    html+='<table class="kpi-table"><tr><th>商品名</th><th>単価</th><th>消化率</th><th>'+p.period+'ヶ月利益</th></tr>';
+    products.forEach(function(pp){
+      var c2=calc(pp);
+      html+='<tr><td>'+pp.name+'</td><td>'+(pp.price?'¥'+fmt(pp.price):'-')+'</td><td>'+c2.rate+'%</td><td>'+(c2.has?(c2.gp>=0?'¥':'▲¥')+fmt(Math.abs(c2.gp)):'-')+'</td></tr>';
+    });
+    html+='</table></div></div>';
+  }
+  document.getElementById('scenario-content').innerHTML=html;
+}
+
+/* ---- AI research ---- */
+async function runResearch(){
+  var apiKey = (localStorage.getItem('amz_apikey')||'').trim();
+  if(!apiKey || !apiKey.startsWith('gsk_')){
+    alert('Groq APIキーを画面上部に入力してください。\nconsole.groq.com/keys で無料取得できます。');
+    return;
+  }
+  var p = products[currentIdx];
+  p.research = {
+    target:      document.getElementById('r-target').value,
+    benefit:     document.getElementById('r-benefit').value,
+    priceRange:  document.getElementById('r-price-range').value,
+    channel:     document.getElementById('r-channel').value,
+    rivals:      document.getElementById('r-rivals').value,
+  };
+  saveProds();
+
+  var btn = document.getElementById('research-btn');
+  btn.disabled = true; btn.textContent = '調査中...';
+  document.getElementById('research-output').innerHTML =
+    '<div class="ai-loading"><div class="spinner"></div>市場規模・競合データを調査しています（30秒ほどかかります）</div>';
+
+  var prompt = `あなたはD2C・EC市場の調査アナリストです。以下の商品コンセプトをもとに市場調査レポートを作成してください。
+
+【商品名】${p.name||'未定'}
+【ターゲット】${p.research.target}
+【訴求軸・ベネフィット】${p.research.benefit}
+【価格帯イメージ】${p.research.priceRange}
+【販売チャネル】${p.research.channel}
+【競合候補】${p.research.rivals}
+
+以下の構成でレポートをJSON形式で出力してください。マークダウンや余分なテキストは不要。JSONのみ出力。文字列の値にダブルクォートや改行を含めないでください。
+
+{
+  "marketSize": {
+    "total": "市場全体の規模（億円・推計根拠も一言）",
+    "addressable": "この商品が取りに行ける実質市場規模（億円）",
+    "growth": "市場の成長率・トレンドコメント"
+  },
+  "competitors": [
+    {
+      "name": "競合商品名",
+      "price": "販売価格",
+      "reviewCount": "Amazonレビュー数（推定）",
+      "estimatedMonthlySales": "推定月間販売数（個）",
+      "estimatedMonthlyRevenue": "推定月商（万円）",
+      "positioning": "ポジションの特徴"
+    }
+  ],
+  "minimumLine": {
+    "monthlySales": "新規参入でミニマムに見込める月間販売数（個）",
+    "basis": "その根拠",
+    "monthlyRevenue": "ミニマム月商（円）※単価${p.price||'未定'}円で計算",
+    "breakEvenMonths": "損益分岐点までの目安月数"
+  },
+  "differentiationOpportunity": "この商品が差別化できるポイント（2〜3文）",
+  "risks": "主なリスク・注意点（2〜3文）"
+}`;
+
+  try {
+    var res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{role:'user', content: prompt}],
+        temperature: 0.3,
+        max_tokens: 2000
+      })
+    });
+    if(!res.ok){
+      var err = await res.json().catch(function(){return {};});
+      throw new Error('APIエラー: '+(err.error?.message||res.status));
+    }
+    var data = await res.json();
+    var raw = data.choices?.[0]?.message?.content || '';
+    if(!raw) throw new Error('レスポンスが空です');
+    var clean = raw.replace(/```json/g,'').replace(/```/g,'').trim();
+    var jsonMatch = clean.match(/\{[\s\S]*\}/);
+    if(!jsonMatch) throw new Error('JSONが見つかりません: ' + clean.substring(0,100));
+    var json = JSON.parse(jsonMatch[0]);
+    if(!json.marketSize || !json.competitors || !json.minimumLine){
+      throw new Error('レスポンスの構造が不正です');
+    }
+    var key = 'research_'+currentIdx;
+    var hist = researchData[key] || [];
+    hist.push({date: new Date().toLocaleDateString('ja-JP'), data: json});
+    researchData[key] = hist;
+    localStorage.setItem('amz_research', JSON.stringify(researchData));
+    renderResearchResult(hist);
+  } catch(e) {
+    document.getElementById('research-output').innerHTML =
+      '<div class="card" style="color:var(--red)">調査中にエラーが発生しました。ページを再読み込みして再試行してください。<br><small>'+e.message+'</small></div>';
+  }
+  btn.disabled=false; btn.textContent='AIで市場調査を実行';
+}
+
+function renderResearchResult(hist){
+  if(!hist || !hist.length) return;
+  var p = products[currentIdx];
+  var d = hist[hist.length-1].data;
+  var html = '';
+  if(hist.length > 1){
+    html += '<div class="section"><div class="section-label">調査履歴</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">';
+    hist.forEach(function(h,i){
+      var isLatest = i===hist.length-1;
+      html += '<button class="btn'+(isLatest?' btn-primary':'')+'" style="font-size:12px;padding:4px 12px" onclick="showHistEntry('+i+')">'+h.date+(isLatest?' (最新)':'')+'</button>';
+    });
+    html += '</div></div>';
+  }
+  html += renderResearchBody(d, p);
+  document.getElementById('research-output').innerHTML = html;
+}
+function renderResearchResult_DISABLED(hist){
+  if(!hist || !hist.length) return;
+  var p = products[currentIdx];
+  // 最新データで表示、履歴タブは下に
+  var d = hist[hist.length-1].data;
+  var html = '';
+
+  // 履歴セレクター（2件以上あるとき）
+  if(hist.length > 1){
+    html += '<div class="section"><div class="section-label">調査履歴</div>';
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">';
+    hist.forEach(function(h,i){
+      var isLatest = i===hist.length-1;
+      html += '<button class="btn'+(isLatest?' btn-primary':'')+'" style="font-size:12px;padding:4px 12px" onclick="showHistEntry('+i+')">'+h.date+(isLatest?' (最新)':'')+'</button>';
+    });
+    html += '</div></div>';
+  }
+
+  html += renderResearchBody(d, p);
+  document.getElementById('research-output').innerHTML = html;
+}
+
+function showHistEntry(idx){
+  var key='research_'+currentIdx;
+  var hist=researchData[key]||[];
+  if(!hist[idx]) return;
+  var p=products[currentIdx];
+  var html='';
+  if(hist.length>1){
+    html+='<div class="section"><div class="section-label">調査履歴</div>';
+    html+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">';
+    hist.forEach(function(h,i){
+      var isSel=i===idx;
+      html+='<button class="btn'+(isSel?' btn-primary':'')+'" style="font-size:12px;padding:4px 12px" onclick="showHistEntry('+i+')">'+h.date+(i===hist.length-1?' (最新)':'')+'</button>';
+    });
+    html+='</div></div>';
+  }
+  html+=renderResearchBody(hist[idx].data, p);
+  document.getElementById('research-output').innerHTML=html;
+}
+
+function renderResearchBody(d, p){var html="";
+  var html = '';
+
+  // 市場規模
+  html += '<div class="section"><div class="section-label">市場規模</div><div class="metrics">';
+  html += metric('全体市場', d.marketSize.total, '推計値', '');
+  html += metric('実質取れる市場', d.marketSize.addressable, 'この商品の射程', '');
+  html += metric('市場トレンド', d.marketSize.growth, '', '');
+  html += '</div></div>';
+
+  // 競合
+  html += '<div class="section"><div class="section-label">競合分析</div><div class="card">';
+  html += '<table class="comp-table"><tr><th>商品名</th><th>価格</th><th>レビュー数</th><th>推定月販売数</th><th>推定月商</th><th>ポジション</th></tr>';
+  (d.competitors||[]).forEach(function(c){
+    html += '<tr><td><strong>'+c.name+'</strong></td><td>'+c.price+'</td><td>'+c.reviewCount+'</td><td>'+c.estimatedMonthlySales+'個</td><td>'+c.estimatedMonthlyRevenue+'</td><td>'+c.positioning+'</td></tr>';
+  });
+  html += '</table></div></div>';
+
+  // ミニマムライン
+  html += '<div class="section"><div class="section-label">ミニマムライン（新規参入の最低見込み）</div>';
+  html += '<div class="metrics-2" style="margin-bottom:10px">';
+  html += metric('月間ミニマム販売数', d.minimumLine.monthlySales+'個', d.minimumLine.basis, 'good');
+  html += metric('ミニマム月商', d.minimumLine.monthlyRevenue, '単価'+(p.price?'¥'+fmt(p.price):'未設定')+'で試算', '');
+  html += '</div>';
+  html += '<div class="card"><div class="row"><span class="row-label">損益分岐点の目安</span><span class="row-value">'+d.minimumLine.breakEvenMonths+'</span></div>';
+
+  // シミュレーターへ反映ボタン
+  var minSales = parseInt(String(d.minimumLine.monthlySales).replace(/[^0-9]/g,''))||0;
+  if(minSales>0){
+    html += '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">';
+    html += '<div style="font-size:12px;color:var(--text2);margin-bottom:8px">この数字をシミュレーターに反映しますか？</div>';
+    html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">';
+    html += '<span style="font-size:13px;color:var(--text2)">月販売数：</span>';
+    html += '<input class="editable-num" type="number" id="import-monthly" value="'+minSales+'">';
+    html += '<button class="btn btn-primary import-btn" onclick="importToSim()">シミュレーターに反映</button>';
+    html += '</div></div>';
+  }
+  html += '</div></div>';
+
+  // 差別化・リスク
+  html += '<div class="section"><div class="metrics-2">';
+  html += '<div class="card"><span class="badge badge-green">差別化チャンス</span><div style="font-size:13px;line-height:1.7">'+d.differentiationOpportunity+'</div></div>';
+  html += '<div class="card"><span class="badge badge-amber">リスク・注意点</span><div style="font-size:13px;line-height:1.7">'+d.risks+'</div></div>';
+  html += '</div></div>';
+
+  document.getElementById('research-output').innerHTML = html;
+}
+
+function importToSim(){
+  var val = parseInt(document.getElementById('import-monthly').value)||0;
+  if(!val) return;
+  products[currentIdx].monthly = val;
+  saveProds();
+  fillForm();
+  renderSim();
+  renderScenario();
+  switchTab('sim', document.querySelectorAll('.tab')[1]);
+  var msg = document.getElementById('form-msg');
+  msg.textContent = 'ミニマムラインを反映しました';
+  setTimeout(function(){msg.textContent='';}, 2500);
+}
+
+/* ---- CSV ---- */
+function exportCSV(){
+  var rows=[['商品名','単価','原価','初期ロット','月販売数','広告費/月','テスト期間','販売数','消化率','完売目安','売上','利益','利益率','ROI','悲観販売数','悲観利益','楽観販売数','楽観利益']];
+  products.forEach(function(p){
+    var c=calc(p);
+    var bad=calc(Object.assign({},p,{monthly:Math.max(5,Math.round(p.monthly*0.5))}));
+    var good=calc(Object.assign({},p,{monthly:Math.round(p.monthly*2)}));
+    rows.push([p.name,p.price||'',p.cost||'',p.stock,p.monthly,p.ads||0,p.period,
+      c.sales,c.rate,c.sellout,
+      c.has?c.rev:'',c.has?c.gp:'',c.has?c.margin:'',c.has?c.roi:'',
+      bad.sales,bad.has?bad.gp:'',good.sales,good.has?good.gp:'']);
+  });
+  var bom='\uFEFF';
+  var csv=bom+rows.map(function(r){return r.map(function(v){return'"'+String(v).replace(/"/g,'""')+'"';}).join(',');}).join('\r\n');
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='amazon_test_marketing.csv'; a.click();
+}
+
+/* ---- tab / render ---- */
+function switchTab(id,el){
+  document.querySelectorAll('.tab-content').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  document.getElementById('tab-'+id).classList.add('active');
+  el.classList.add('active');
+}
+
+function renderAll(){
+  renderProdBar(); fillForm(); renderSim(); renderScenario();
+}
+
+renderAll();
+</script>
+</body>
+</html>
