@@ -402,7 +402,7 @@ function fillForm(){
   document.getElementById('r-rivals').value      = r.rivals||'';
   var key = 'research_'+currentIdx;
   var saved = researchData[key];
-  if(saved){ var hist=Array.isArray(saved)?saved:[]; if(hist.length){ renderResearchResult(hist); } else { document.getElementById('research-output').innerHTML=''; } } else { document.getElementById('research-output').innerHTML=''; }
+  if(saved && saved.length){ renderResearchResult(saved); } else { document.getElementById('research-output').innerHTML=''; }
 }
 
 /* ---- calc ---- */
@@ -555,33 +555,9 @@ async function runResearch(){
 【販売チャネル】${p.research.channel}
 【競合候補】${p.research.rivals}
 
-以下の構成でレポートをJSON形式で出力してください。マークダウンや余分なテキストは不要。JSONのみ出力。文字列の値にダブルクォートや改行を含めないでください。
+以下の構成でレポートをJSON形式のみで出力してください。説明文、マークダウン、コードブロック、改行文字は一切含めないでください。文字列内にダブルクォートを使わないでください。JSONのみ出力してください。
 
-{
-  "marketSize": {
-    "total": "市場全体の規模（億円・推計根拠も一言）",
-    "addressable": "この商品が取りに行ける実質市場規模（億円）",
-    "growth": "市場の成長率・トレンドコメント"
-  },
-  "competitors": [
-    {
-      "name": "競合商品名",
-      "price": "販売価格",
-      "reviewCount": "Amazonレビュー数（推定）",
-      "estimatedMonthlySales": "推定月間販売数（個）",
-      "estimatedMonthlyRevenue": "推定月商（万円）",
-      "positioning": "ポジションの特徴"
-    }
-  ],
-  "minimumLine": {
-    "monthlySales": "新規参入でミニマムに見込める月間販売数（個）",
-    "basis": "その根拠",
-    "monthlyRevenue": "ミニマム月商（円）※単価${p.price||'未定'}円で計算",
-    "breakEvenMonths": "損益分岐点までの目安月数"
-  },
-  "differentiationOpportunity": "この商品が差別化できるポイント（2〜3文）",
-  "risks": "主なリスク・注意点（2〜3文）"
-}`;
+{"marketSize":{"total":"市場全体の規模（億円・推計根拠も一言）","addressable":"この商品が取りに行ける実質市場規模（億円）","growth":"市場の成長率・トレンドコメント"},"competitors":[{"name":"競合商品名","price":"販売価格","reviewCount":"Amazonレビュー数（推定）","estimatedMonthlySales":"推定月間販売数（個）","estimatedMonthlyRevenue":"推定月商（万円）","positioning":"ポジションの特徴"}],"minimumLine":{"monthlySales":"新規参入でミニマムに見込める月間販売数（個）","basis":"その根拠","monthlyRevenue":"ミニマム月商（円）","breakEvenMonths":"損益分岐点までの目安月数"},"differentiationOpportunity":"この商品が差別化できるポイント","risks":"主なリスクと注意点"}`;
 
   try {
     var res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -603,6 +579,7 @@ async function runResearch(){
     }
     var data = await res.json();
     var raw = data.choices?.[0]?.message?.content || '';
+    window._lastRaw = raw;
     if(!raw) throw new Error('レスポンスが空です');
     var clean = raw.replace(/```json/g,'').replace(/```/g,'').trim();
     var jsonMatch = clean.match(/\{[\s\S]*\}/);
@@ -619,28 +596,16 @@ async function runResearch(){
     renderResearchResult(hist);
   } catch(e) {
     document.getElementById('research-output').innerHTML =
-      '<div class="card" style="color:var(--red)">調査中にエラーが発生しました。ページを再読み込みして再試行してください。<br><small>'+e.message+'</small></div>';
+      '<div class="card" style="color:var(--red)">' +
+      '<strong>エラー詳細：</strong><br>' + e.message + 
+      '<br><br><strong>生レスポンス（調査用）：</strong><br>' +
+      '<pre style="font-size:11px;overflow:auto;max-height:200px;background:var(--surface2);padding:8px;border-radius:4px">' + 
+      (window._lastRaw || 'なし') + '</pre></div>';
   }
   btn.disabled=false; btn.textContent='AIで市場調査を実行';
 }
 
 function renderResearchResult(hist){
-  if(!hist || !hist.length) return;
-  var p = products[currentIdx];
-  var d = hist[hist.length-1].data;
-  var html = '';
-  if(hist.length > 1){
-    html += '<div class="section"><div class="section-label">調査履歴</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">';
-    hist.forEach(function(h,i){
-      var isLatest = i===hist.length-1;
-      html += '<button class="btn'+(isLatest?' btn-primary':'')+'" style="font-size:12px;padding:4px 12px" onclick="showHistEntry('+i+')">'+h.date+(isLatest?' (最新)':'')+'</button>';
-    });
-    html += '</div></div>';
-  }
-  html += renderResearchBody(d, p);
-  document.getElementById('research-output').innerHTML = html;
-}
-function renderResearchResult_DISABLED(hist){
   if(!hist || !hist.length) return;
   var p = products[currentIdx];
   // 最新データで表示、履歴タブは下に
@@ -681,7 +646,7 @@ function showHistEntry(idx){
   document.getElementById('research-output').innerHTML=html;
 }
 
-function renderResearchBody(d, p){var html="";
+function renderResearchBody(d, p){
   var html = '';
 
   // 市場規模
