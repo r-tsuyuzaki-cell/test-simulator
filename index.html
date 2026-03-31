@@ -401,8 +401,14 @@ function fillForm(){
   document.getElementById('r-channel').value     = r.channel||'';
   document.getElementById('r-rivals').value      = r.rivals||'';
   var key = 'research_'+currentIdx;
-  var saved = JSON.parse(localStorage.getItem('amz_research')||'{}')[key];
-  if(saved && saved.length){ renderResearchResult(saved); } else { document.getElementById('research-output').innerHTML=''; }
+  var savedRaw = localStorage.getItem('amz_research');
+  var savedAll = savedRaw ? JSON.parse(savedRaw) : {};
+  var saved = savedAll[key];
+  if(saved && Array.isArray(saved) && saved.length){
+    renderResearchResult(saved);
+  } else {
+    document.getElementById('research-output').innerHTML='';
+  }
 }
 
 /* ---- calc ---- */
