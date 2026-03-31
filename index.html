@@ -401,7 +401,7 @@ function fillForm(){
   document.getElementById('r-channel').value     = r.channel||'';
   document.getElementById('r-rivals').value      = r.rivals||'';
   var key = 'research_'+currentIdx;
-  var saved = researchData[key];
+  var saved = JSON.parse(localStorage.getItem('amz_research')||'{}')[key];
   if(saved && saved.length){ renderResearchResult(saved); } else { document.getElementById('research-output').innerHTML=''; }
 }
 
